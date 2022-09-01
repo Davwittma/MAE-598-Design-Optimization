@@ -40,7 +40,6 @@ constraint1 = {'type': 'eq', 'fun': eqconstraint1}
 constraint2 = {'type': 'eq', 'fun': eqconstraint2}
 constraint3 = {'type': 'eq', 'fun': eqconstraint3}
 constraint = [constraint1, constraint2, constraint3]
-x0 = [1, 1, 1, 1, 1]
+x0 = [-100, -100, -100, -100, -100]
 res = minimize(objective_fcn, x0, method='SLSQP', bounds=bounds, constraints=constraint)
 print(res)
-breakpoint()
