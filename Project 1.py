@@ -40,8 +40,12 @@ class Dynamics(nn.Module):
     def forward(state, action):
         """
         action: thrust or no thrust
-        state[0] = y
-        state[1] = y_dot
+
+        state[0] = x            position of x
+        state[1] = x_dot        speed of x
+        state[2] = y            position of y
+        state[3] = y_dot        speed of y
+        state[4] = angle        orientation of the rocket wrt the +vertical axis
         """
 
         # Apply gravity
@@ -49,11 +53,12 @@ class Dynamics(nn.Module):
         # Normally, we would do x[1] = x[1] + gravity * delta_time
         # but this is not allowed in PyTorch since it overwrites one variable (x[1]) that is part of the computational graph to be differentiated.
         # Therefore, I define a tensor dx = [0., gravity * delta_time], and do x = x + dx. This is allowed...
-        delta_state_gravity = t.tensor([0., GRAVITY_ACCEL * FRAME_TIME])
+
+        delta_state_gravity = t.tensor([0., 0., 0., GRAVITY_ACCEL * FRAME_TIME])
 
         # Thrust
         # Note: Same reason as above. Need a 2-by-1 tensor.
-        delta_state = BOOST_ACCEL * FRAME_TIME * t.tensor([0., -1.]) * action
+        delta_state = BOOST_ACCEL * FRAME_TIME * t.tensor([0., 0., 0., 0., -1.]) * action
 
         # Update velocity
         state = state + delta_state + delta_state_gravity
