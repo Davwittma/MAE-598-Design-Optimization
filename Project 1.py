@@ -5,6 +5,7 @@ import math
 import random
 import numpy as np
 import time
+import torch
 import torch as t
 import torch.nn as nn
 from torch import optim
@@ -48,13 +49,14 @@ class Dynamics(nn.Module):
         state[4] = angle        orientation of the rocket wrt the +vertical axis
         """
 
-        # Apply gravity
+        # Apply gravity (acting in negative direction, ie downward)
         # Note: Here gravity is used to change velocity which is the second element of the state vector
         # Normally, we would do x[1] = x[1] + gravity * delta_time
         # but this is not allowed in PyTorch since it overwrites one variable (x[1]) that is part of the computational graph to be differentiated.
         # Therefore, I define a tensor dx = [0., gravity * delta_time], and do x = x + dx. This is allowed...
 
-        delta_state_gravity = t.tensor([0., 0., 0., GRAVITY_ACCEL * FRAME_TIME])
+        delta_state_gravity = t.tensor([0., 0., 0., -GRAVITY_ACCEL * FRAME_TIME, 0]) #Note: Gravity only acting on y_dot, leaving all other terms zero
+        #                                                                             and will accommodate them as follows:
 
         # Thrust
         # Note: Same reason as above. Need a 2-by-1 tensor.
@@ -70,14 +72,13 @@ class Dynamics(nn.Module):
 
         delta_state_ang = FRAME_TIME * t.mul(t.tensor([0., 0., 0., 0., -1.]), action[:, 1].reshape(-1, 1))
 
-
         # Update velocity
+
         state = state + delta_state + delta_state_gravity + delta_state_ang
 
         # Update state
-        
         # Note: Same as above. Use operators on matrices/tensors as much as possible. Do not use element-wise operators as they are considered inplace.
-        
+
         step_mat = t.tensor([[1., FRAME_TIME],
                              [0., 1.]])
         state = t.matmul(step_mat, state)
@@ -144,7 +145,7 @@ class Simulation(nn.Module):
 
     @staticmethod
     def initialize_state():
-        state = [1. , 0.]  # Initialized state, Following up with batch
+        state = [1., 0.]  # Initialized state, Following up with batch
         state = torch.rand((len(state)), 5)
         # Assumed velocities in both directions are zero at initialization
         state[:, 1] = 0  # x-comp
