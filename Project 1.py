@@ -58,13 +58,26 @@ class Dynamics(nn.Module):
 
         # Thrust
         # Note: Same reason as above. Need a 2-by-1 tensor.
-        delta_state = BOOST_ACCEL * FRAME_TIME * t.tensor([0., 0., 0., 0., -1.]) * action
+        # To directionalize the thrust, we must incorporate the components of theta into the thrust direction:
+
+        ste_tensor = t.zeros(len(state), 5)  # accommodating the new 5 term tensor
+        ste_tensor[:, 1] = -t.sin(state[:,4]) # Acting in negative direction
+        ste_tensor[:, 3] = t.cos(state[:, 4]) # Acting in positive direction
+
+        delta_state = BOOST_ACCEL * FRAME_TIME * t.mul(t.tensor([0., 0., 0., 0., -1.]), action[:, 0].reshape(-1, 1)) #t.mul to multiply tensors
+
+        # Angle
+
+        delta_state_ang = FRAME_TIME * t.mul(t.tensor([0., 0., 0., 0., -1.]), action[:, 1].reshape(-1, 1))
+
 
         # Update velocity
-        state = state + delta_state + delta_state_gravity
+        state = state + delta_state + delta_state_gravity + delta_state_ang
 
         # Update state
+        
         # Note: Same as above. Use operators on matrices/tensors as much as possible. Do not use element-wise operators as they are considered inplace.
+        
         step_mat = t.tensor([[1., FRAME_TIME],
                              [0., 1.]])
         state = t.matmul(step_mat, state)
@@ -131,7 +144,11 @@ class Simulation(nn.Module):
 
     @staticmethod
     def initialize_state():
-        state = [1. , 0.]  # TODO: need batch of initial states Research how to batch initial conditions
+        state = [1. , 0.]  # Initialized state, Following up with batch
+        state = torch.rand((len(state)), 5)
+        # Assumed velocities in both directions are zero at initialization
+        state[:, 1] = 0  # x-comp
+        state[:, 3] = 0  # y-comp
         return t.tensor(state, requires_grad=False).float()
 
 
