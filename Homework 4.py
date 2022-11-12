@@ -5,7 +5,7 @@ import torch as t
 # Formulating components of equation for df/dd
 # 1 x1 is decision and x2/3 are state variable
 
-def obj(x1, x2, x3):
+def objective(x1, x2, x3):
     return x1 ** 2 + x2 ** 2 + x3 ** 2
 
 
@@ -56,7 +56,7 @@ def solveh(x1, x2, x3):
 def line_search(x1, x2, x3):
     a = 1.  # initialize step size
     df = dfdd(x1, x2, x3)
-    phi = lambda a, x1, x2, x3, df: obj(x1, x2, x3) - a * 0.3 * np.matmul(df, df.T)  # define phi as a search criterion
+    phi = lambda a, x1, x2, x3, df: objective(x1, x2, x3) - a * 0.3 * np.matmul(df, df.T)  # define phi as a search criterion
 
     def f_a(x1, x2, x3, a):
         df = dfdd(x1, x2, x3)
@@ -66,7 +66,7 @@ def line_search(x1, x2, x3):
         ds = np.matmul(np.matmul(dh_ds_inv, dh_dd), df.T).flatten()
         x2 = x2 + a * ds[0]
         x3 = x3 + a * ds[1]
-        return obj(x1, x2, x3)
+        return objective(x1, x2, x3)
 
     while phi(a, x1, x2, x3, df) < f_a(x1, x2, x3, a):
         a = 0.5 * a
@@ -82,7 +82,7 @@ x1, x2, x3, _ = solveh(x1, x2, x3)
 df_dd_norm = np.linalg.norm(dfdd(x1, x2, x3))
 
 # Search while norm of grad is larger than search criteria, ser
-while df_ff_norm >= ser:
+while df_dd_norm >= ser:
     a = line_search(x1, x2, x3)
     x1 = x1 - a*dfdd(x1,x2,x3).flatten()
     dh_ds_inv, dh_dd, dh =dh_dx(x1,x2,x3)
@@ -90,6 +90,8 @@ while df_ff_norm >= ser:
     x2 = ds[0] +x2
     x3 = ds[1] +x3
     x1, x2, x3, _ = solveh(x1,x2,x3)
-    df_dd_norm = np.linalg,norm(dfdd(x1, x2, x3))
+    df_dd_norm = np.linalg.norm(dfdd(x1, x2, x3))
 
     print(x1, x2, x3)
+print('Final solution is ')
+print(x1, x2, x3)
