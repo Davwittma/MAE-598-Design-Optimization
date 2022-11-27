@@ -148,8 +148,8 @@ class Simulation(nn.Module):
         state = [1., 0.]  # Initialized state, Following up with batch
         state = torch.rand((len(state)), 5)
         # Assumed velocities in both directions are zero at initialization
-        state[:, 1] = 0  # x-comp
-        state[:, 3] = 0  # y-comp
+        state[:, 1] = 0  # x-comp velocity
+        state[:, 3] = 0  # y-comp velocity
         return t.tensor(state, requires_grad=False).float()
 
 
