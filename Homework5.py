@@ -4,12 +4,15 @@ import torch as t
 def objective_f(x):
     f = x[0][0] ** 2 + (x[1][0] - 3) **2
     return f
-def constraint_g1(x):
-    g1 = x[1][0]**2 - 2*x[0][0] <= 0
-    return g1
-def constraint_g2(x, g, ):
-    g2 = (x[1][0]-1) ** 2 + 5*x[0][0] -15 <=0
-    return g2
+def objective_df(x):
+    df = np.array([[2* x[0][0], 2* x[1][0]-3]])
+    return df
+def constraint_g(x):
+    g = np.array( [[x[1][0]**2 - 2*x[0][0]], [(x[1][0]-1) ** 2 + 5 * x[0][0] -15]])
+    return g
+def constraint_dg(x):
+    dg = np.array([[-2, 2 * x[1][0]], [5, 2 * (x[1][0] - 1)]])
+    return dg
 #TODO: add derivatives of constraints and objective func
 
 def linser(x, s, mu, w_p, k) #TODO: Finish Line search alg
@@ -20,12 +23,23 @@ def linser(x, s, mu, w_p, k) #TODO: Finish Line search alg
         w==abs(mu)
     else:
         w = np.zeros((2,1))
-        w[0] = max(abs(mu[0]), 0.5 * w_p[0] + abs(mu[0]))
-        w[1] = max(abs(mu[1]), 0.5 * w_p[1 + abs(mu[1]))
-        #TODO: add activating constraints
+        w[0] = max(abs(mu[0]), 0.5 * (w_p[0] + abs(mu[0])))
+        w[1] = max(abs(mu[1]), 0.5 * (w_p[1] + abs(mu[1])))
 
-    def fa(x, w, a, s):
-            #TODO: limits for constraints
+        dg_da_1 = 0 if constraint_g(x)[0, :] <= 0 else np.matmul(constraint_dg(x)[0, :], s)
+        dg_da_2 = 0 if constraint_g(x)[1, :] <= 0 else np.matmul(constraint_dg(x)[1, :], s)
+        dF_da = np.matmul(objective_df(x), s) + (w[0, :] * dg_da_1 + w[1, :] * dg_da_2)
+    def F_a(x, w, a, s):
+        g1 = max(0, constraint_g(x + a * s)[0, :])
+        g2 = max(0, constraint_g(x + a * s)[1, :])
+        F = objective_f(x + a * s) + (w[0, :] * g1 + w[1, :] * g2)
+        return F
+    phi = lambda x, w, a, t, dF_da: F_a(x, w, 0, 0) + a * t * dF_da
+
+    while phi(x, w, a, t, dF_da) < F_a(x, w, a, s):
+        a = 0.8 * a
+
+    return a, w
 
 #constructing SQP
 def sqp(x, W)
@@ -82,10 +96,29 @@ def sqp(x, W)
 
 
     return
-def BFGS(x, W, dx, s, mu):
-    delt_L = (objectivedf(x) + np.matmul(mu.T, constraint_dg(x))) - (objectivedf(x-dx) + np.matmul(mu.T, constraintdg(x-dx)))
+def BFGS(W, x, dx, s, mu):
+    delta_L = (objective_df(x) + np.matmul(mu.T, constraint_dg(x))) - (objective_df(x - dx) + np.matmul(mu.T, constraint_dg(x - dx)))
+    Q = np.matmul(np.matmul(dx.T, W), dx)
+    if np.matmul((dx).T, delta_L.T) >= 0.2 * np.matmul(np.matmul((dx).T, W), (dx)):
+        theta = 1
+    else:
+        theta = 0.8 * Q / (Q - np.matmul(dx.T, delta_L.T))
 
+    y = theta * delta_L.T + (1 - theta) * np.matmul(W, dx)
+    W_n = W + np.matmul(y, y.T) / np.matmul(y.T, s) - np.matmul(np.matmul(W, s), np.matmul(s.T, W)) / np.matmul(np.matmul(s.T, W), s)
 
+    return W_n
 
+eps = 1e-3  #
+x0 = np.array([[1.], [1.]])
+x = np.array([[1.], [1.]])
+W = np.eye(x.shape[0])
+mu_old = np.zeros((x.shape[0], 1))
+k = 0
 
-    return
+delta_L_norm = np.linalg.norm(objective_df(x) + np.matmul(mu_old.T, constraint_dg(x)))
+w_old = np.zeros((2, 1))
+solution1 = []
+solution2 = []
+solution1.append(x[0][0])
+solution2.append(x[1][0])
